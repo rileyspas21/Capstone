@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Craigslist Search</title>
+</head>
+<body>
+    <h1>Craigslist Search</h1>
+
+    <!-- user input form -->
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Search</button>
+    </form>
+
+    <!-- display results -->
+    {% if results %}
+        <h2>Search Results:</h2>
+        <ul>
+            {% for result in results %}
+                <li>
+                    <strong>{{ result.title }}</strong><br>
+                    Price: {{ result.price }}<br>
+                    Location: {{ result.location }}<br>
+                    <a href="{{ result.url }}" target="_blank">View Listing</a><br>
+                    {% if result.image_url %}
+                        <img src="{{ result.image_url }}" alt="{{ result.title }}" style="width:150px;"><br>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% elif results == None %}
+        <!-- if no results -->
+    {% else %}
+        <p>No listings found.</p>
+    {% endif %}
+</body>
+</html>
