@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Craigslist and eBay Search</title>
+</head>
+<body>
+    <h1>Craigslist and eBay Search</h1>
+
+    <!-- user input form -->
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Search</button>
+    </form>
+
+    <!-- display craigslist results -->
+    {% if craigslist_results %}
+        <h2>Craigslist Search Results:</h2>
+        <ul>
+            {% for result in craigslist_results %}
+                <li>
+                    <strong>{{ result.title }}</strong><br>
+                    Price: {{ result.price }}<br>
+                    Location: {{ result.location }}<br>
+                    <a href="{{ result.url }}" target="_blank">View Listing</a><br>
+                    {% if result.image_url %}
+                        <img src="{{ result.image_url }}" alt="{{ result.title }}" style="width:150px;"><br>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% elif craigslist_results == None %}
+        <!-- if no craigslist results -->
+    {% else %}
+        <p>No Craigslist listings found.</p>
+    {% endif %}
+
+    <!-- display ebay results -->
+    {% if ebay_results %}
+        <h2>eBay Search Results:</h2>
+        <ul>
+            {% for result in ebay_results %}
+                <li>
+                    <strong>{{ result.title }}</strong><br>
+                    Price: {{ result.price }}<br>
+                    <a href="{{ result.link }}" target="_blank">View Listing</a><br>
+                    {% if result.image_url %}
+                        <img src="{{ result.image_url }}" alt="{{ result.title }}" style="width:150px;"><br>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% elif ebay_results == None %}
+        <!-- if no ebay results -->
+    {% else %}
+        <p>No eBay listings found.</p>
+    {% endif %}
+
+</body>
+</html>
