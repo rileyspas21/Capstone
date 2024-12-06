@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Saved Listings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .listing {
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .listing img {
+            max-width: 150px;
+            margin-bottom: 10px;
+        }
+        .listing h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .listing p {
+            margin: 5px 0;
+        }
+        .listing a {
+            text-decoration: none;
+            color: #0066cc;
+        }
+        .remove-button {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #cc0000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .remove-button:hover {
+            background-color: #a30000;
+        }
+        .back-button {
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .back-button:hover {
+            background-color: #005bb5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Your Saved Listings</h1>
+
+    {% for listing in listings %}
+        <div class="listing">
+            <h3>{{ listing.WantedItemName }}</h3>
+            <p>Price: ${{ listing.WantedItemPrice }}</p>
+            <p>Location: {{ listing.WantedItemLocation }}</p>
+            <p><a href="{{ listing.WantedItemURL }}" target="_blank">View Listing</a></p>
+            {% if listing.WantedItemImage %}
+                <img src="{{ listing.WantedItemImage }}" alt="Listing Image">
+            {% endif %}
+            <form method="POST" action="{% url 'removeListing' listing.id %}">
+                {% csrf_token %}
+                <button type="submit" class="remove-button">Remove</button>
+            </form>
+        </div>
+    {% empty %}
+        <p>You don't have any saved listings, at least not yet!</p>
+    {% endfor %}
+
+    <a href="{% url 'homepage' %}" class="back-button">Back to Search</a>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Craigslist and eBay Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .auth-links {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .save-listings-btn {
+            margin: 10px 0;
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .save-listings-btn:hover {
+            background-color: #005bb5;
+        }
+        img {
+            max-width: 150px;
+            margin: 10px 0;
+        }
+        .recent-searches {
+            margin-top: 20px;
+        }
+        .recent-searches h2 {
+            text-align: center;
+        }
+        .recent-searches ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .recent-searches li {
+            margin-bottom: 10px;
+        }
+        .recent-searches a {
+            text-decoration: none;
+            color: #0066cc;
+        }
+        .recent-searches a:hover {
+            text-decoration: underline;
+        }
+        #priceChart {
+            height: 700px;
+            width: 1100px;
+            margin: 40px auto;
+        }
+        .messages {
+            color: red;
+            margin: 20px auto;
+            text-align: center;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+</head>
+<body>
+    <div class="auth-links">
+        {% if user.is_authenticated %}
+            <form action="{% url 'logout' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit">Logout</button>
+            </form>
+            <a href="{% url 'savedListings' %}">Saved Listings</a>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
+        {% endif %}
+    </div>
+
+    <h1>Craigslist and eBay Search</h1>
+
+    <!--display message --> 
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!--search form -->
+    <form method="POST" onsubmit="return checkAuthentication();">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Search</button>
+    </form>
+
+    <!--JS for login check -->
+    <script>
+        function checkAuthentication() {
+            const isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+            if (!isAuthenticated) {
+                alert("You must be logged in to perform a search.");
+                return false; //stops from submitting
+            }
+            return true;
+        }
+    </script>
+
+    <!-- price Trend Graph -->
+    {% if search_item and max_price %}
+        <h2>Price Trends for "{{ search_item }}" (Max Price: ${{ max_price }})</h2>
+        <canvas id="priceChart"></canvas>
+        <script>
+            //fetch graph data
+            fetch("{% url 'priceGraph' search_item max_price %}")
+                .then(response => response.json())
+                .then(data => {
+                    const ctx = document.getElementById('priceChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                label: 'Average Price',
+                                data: data.prices,
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                tension: 0.4,
+                                pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                                pointBorderWidth: 2,
+                                pointHoverRadius: 6,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Average Price: $${context.raw.toFixed(2)}`;
+                                        }
+                                    }
+                                },
+                                datalabels: {
+                                    color: '#000',
+                                    align: 'top',
+                                    font: {
+                                        weight: 'bold'
+                                    },
+                                    formatter: (value) => `$${value.toFixed(2)}`
+                                }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Date' } },
+                                y: { 
+                                    title: { display: true, text: 'Average Price (USD)' }, 
+                                    beginAtZero: true 
+                                }
+                            }
+                        },
+                        plugins: [ChartDataLabels]
+                    });
+                });
+        </script>
+    {% endif %}
+
+    <!--save selected listimgs -->
+    {% if craigslist_results or ebay_results %}
+        <form method="POST" action="{% url 'saveListings' %}">
+            {% csrf_token %}
+            <button type="submit" class="save-listings-btn">Save Selected Listings</button>
+
+            {% if craigslist_results %}
+                <h2>Craigslist Search Results:</h2>
+                <ul>
+                    {% for result in craigslist_results %}
+                        <li>
+                            <strong>{{ result.title }}</strong><br>
+                            Price: {{ result.price }}<br>
+                            Location: {{ result.location }}<br>
+                            <a href="{{ result.url }}" target="_blank">View Listing</a><br>
+                            {% if result.image_url %}
+                                <img src="{{ result.image_url }}" alt="{{ result.title }}">
+                            {% endif %}
+                            <label>
+                                <input type="checkbox" name="selected_listings" value="{{ result.id }}">
+                                Save Listing
+                            </label>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if ebay_results %}
+                <h2>eBay Search Results:</h2>
+                <ul>
+                    {% for result in ebay_results %}
+                        <li>
+                            <strong>{{ result.title }}</strong><br>
+                            Price: {{ result.price }}<br>
+                            <a href="{{ result.link }}" target="_blank">View Listing</a><br>
+                            {% if result.image_url %}
+                                <img src="{{ result.image_url }}" alt="{{ result.title }}">
+                            {% endif %}
+                            <label>
+                                <input type="checkbox" name="selected_listings" value="{{ result.id }}">
+                                Save Listing
+                            </label>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </form>
+    {% else %}
+        <p>No listings found. Try searching for something else!</p>
+    {% endif %}
+
+    <!--history -->
+    {% if recent_searches %}
+        <div class="recent-searches">
+            <h2>Recent Searches</h2>
+            <ul>
+                {% for search in recent_searches %}
+                    <li>
+                        <a href="?search_item={{ search.search_item }}&max_price={{ search.max_price }}">
+                            {{ search.search_item }} (Max Price: ${{ search.max_price }})
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</body>
+</html>
